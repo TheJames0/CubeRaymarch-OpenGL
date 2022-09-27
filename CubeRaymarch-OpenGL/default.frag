@@ -15,10 +15,10 @@ Test
 */
 float sdBox(vec3 p, vec3 s) {
     p = abs(p)-s;
-	return length(max(p, 0.))+min(max(p.x, max(p.y, p.z)), 0.);
+	return length(max(p, 0.))+min(max(p.x, max(p.y, p.z)) , 0.);
 }
 float GetDist(vec3 p) {
-    float box = sdBox(p-vec3(0,0,0), vec3(1));
+    float box = sdBox(p-vec3(0,0,0), vec3(1,1.5,1));
    
     
     float d = min(0.05, box);
@@ -46,20 +46,45 @@ vec3 R(vec2 uv, vec3 p, vec3 l, float z) {
         d = normalize(i-p);
     return d;
 }
+
+vec3 GetNormal(vec3 p) {
+	float d = GetDist(p);
+    vec2 e = vec2(.001, 0);
+    
+    vec3 n = d - vec3(
+        GetDist(p-e.xyy),
+        GetDist(p-e.yxy),
+        GetDist(p-e.yyx));
+    
+    return normalize(n);
+}
+
+float GetLight(vec3 p) {
+    vec3 lightPos = vec3(3, 5, 4);
+    vec3 l = normalize(lightPos-p);
+    vec3 n = GetNormal(p);
+    
+    float dif = clamp(dot(n, l)*.5+.5, 0., 1.);
+    float d = RayMarch(p+n*SURF_DIST*2., l);
+   // if(p.y<.01 && d<length(lightPos-p)) dif *= .5;
+    
+    return dif;
+}
 void main()
 {
     vec2 uv = (gl_FragCoord.xy-.5*iResolution.xy)/iResolution.y;
-    vec3 ro = vec3(cos(time*0.1)*5,0,sin(time*0.1)*5);
+    vec3 ro = vec3(cos(time*0.1)*5,sin(time)*5,sin(time*0.1)*5);
     vec3 rd = R(uv, ro, vec3(sin(cos(time * 0.5)),0,0), 1.);
     vec3 col = vec3(0.,0.,0.);
     float d = RayMarch(ro,rd);
+    
     if(d<MAX_DIST) {
     	vec3 p = ro + rd * d;
     
-    	
-    	col = vec3((d*d*d*d),(d*d*d*d),(d*d*d*d));
+    	float dif = GetLight(p);
+    	col =  vec3(dif,dif,dif);
     }
-    col = pow(col, vec3(-.3));
+    col = pow(col, vec3(.8));
     // Output to screen
-    fragColor = vec4(col,1.0);
+    fragColor = vec4(col,5.0);
 }
