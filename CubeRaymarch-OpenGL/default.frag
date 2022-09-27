@@ -21,7 +21,7 @@ float GetDist(vec3 p) {
     float box = sdBox(p-vec3(0,0,0), vec3(1,1.5,1));
    
     
-    float d = min(0.05, box);
+    float d = min(0.02, box);
     return d;
 }
 
@@ -70,18 +70,30 @@ float GetLight(vec3 p) {
     
     return dif;
 }
+float GetVolumeLight(vec3 enter, vec3 exit,vec3 lightPos) {
+    
+    float accumalatedvalue = 2;
+    for(float i = 0 ; i < 1; i += 0.04)
+    {
+        vec3 slicedvec = (1 - i * enter) + (i * exit);
+        vec3 l = normalize(lightPos-slicedvec);
+        accumalatedvalue -= RayMarch(slicedvec , l) * 0.1;
+    }
+    return accumalatedvalue;
+}
 void main()
 {
     vec2 uv = (gl_FragCoord.xy-.5*iResolution.xy)/iResolution.y;
-    vec3 ro = vec3(cos(time*0.1)*5,sin(time)*5,sin(time*0.1)*5);
-    vec3 rd = R(uv, ro, vec3(sin(cos(time * 0.5)),0,0), 1.);
+    vec3 ro = vec3(sin(time), 1, -5);
+    vec3 rd = R(uv, ro, vec3(0,1,0), 1.);
     vec3 col = vec3(0.,0.,0.);
     float d = RayMarch(ro,rd);
-    
+    float e = RayMarch(ro + rd * 5,-rd);
+    vec3 lightPos = vec3(0,2,-5);
     if(d<MAX_DIST) {
     	vec3 p = ro + rd * d;
-    
-    	float dif = GetLight(p);
+        vec3 p1 = ro + rd * 5 -(rd * e);
+    	float dif = GetVolumeLight(p,p1,lightPos);
     	col =  vec3(dif,dif,dif);
     }
     col = pow(col, vec3(.8));
