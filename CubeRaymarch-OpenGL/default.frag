@@ -14,11 +14,20 @@ Box raymarching shader
 Test
 */
 float sdBox(vec3 p, vec3 s) {
-    p = abs(p)-s;
-	return length(max(p, 0.))+min(max(p.x, max(p.y, p.z)) , 0.);
+    vec3 d = abs(p) - (s);
+    
+    // Assuming p is inside the cube, how far is it from the surface?
+    // Result will be negative or zero.
+    float insideDistance = min(max(d.x, max(d.y, d.z)), 0.0);
+    
+    // Assuming p is outside the cube, how far is it from the surface?
+    // Result will be positive or zero.
+    float outsideDistance = length(max(d, 0.0));
+    
+    return insideDistance + outsideDistance;
 }
 float GetDist(vec3 p) {
-    float box = sdBox(p-vec3(0,0,0), vec3(1,1.5,1));
+    float box = sdBox(p-vec3(0,0.5,0), vec3(1,1,1));
    
     
     float d = min(0.02, box);
@@ -72,13 +81,14 @@ float GetLight(vec3 p) {
 }
 float GetVolumeLight(vec3 enter, vec3 exit,vec3 lightPos) {
     
-    float accumalatedvalue = 2;
-    for(float i = 0 ; i < 1; i += 0.04)
+    float accumalatedvalue = 0.7;
+    for(float i = 0 ; i < 1; i += 0.1)
     {
         vec3 slicedvec = (1 - i * enter) + (i * exit);
         vec3 l = normalize(lightPos-slicedvec);
-        accumalatedvalue -= RayMarch(slicedvec , l) * 0.1;
+        accumalatedvalue -= RayMarch(slicedvec , l) * 0.005;
     }
+
     return accumalatedvalue;
 }
 void main()
@@ -89,14 +99,15 @@ void main()
     vec3 col = vec3(0.,0.,0.);
     float d = RayMarch(ro,rd);
     float e = RayMarch(ro + rd * 5,-rd);
-    vec3 lightPos = vec3(0,2,-5);
+    vec3 lightPos = vec3(sin(-time)*5,2,0);
     if(d<MAX_DIST) {
     	vec3 p = ro + rd * d;
         vec3 p1 = ro + rd * 5 -(rd * e);
+        float dif1 = GetLight(p);
     	float dif = GetVolumeLight(p,p1,lightPos);
     	col =  vec3(dif,dif,dif);
     }
-    col = pow(col, vec3(.8));
+    col = pow(col, vec3(2));
     // Output to screen
     fragColor = vec4(col,5.0);
 }
